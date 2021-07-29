@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">E-Purcharse</string>
+    <string name="get_skus">Get Skus</string>
+    <string name="purchase">Purchase</string>
+    <string name="get_purchases">Get Purchases</string>
+    <string name="purchase_history">Purchase History</string>
+    <string name="consume_purchase">Consume purchase</string>
+</resources>
