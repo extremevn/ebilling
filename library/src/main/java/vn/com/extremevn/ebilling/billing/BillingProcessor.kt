@@ -28,7 +28,7 @@ import com.android.billingclient.api.PurchaseHistoryRecord
 import com.android.billingclient.api.PurchasesUpdatedListener
 import com.android.billingclient.api.SkuDetails
 import com.android.billingclient.api.SkuDetailsParams
-import vn.com.extremevn.ebilling.billing.ResponseCodes.Companion.EXCEPTION
+import timber.log.Timber
 import vn.com.extremevn.ebilling.billing.request.ConsumePurchaseRequest
 import vn.com.extremevn.ebilling.billing.request.GetPurchaseHistoryRequest
 import vn.com.extremevn.ebilling.billing.request.GetPurchasesRequest
@@ -37,17 +37,14 @@ import vn.com.extremevn.ebilling.billing.request.LaunchBillingFlowRequest
 import vn.com.extremevn.ebilling.request.OnBillingConnectedRunnableRequest
 import vn.com.extremevn.ebilling.request.PendingRequests
 import vn.com.extremevn.ebilling.request.Request
-import vn.com.extremevn.ebilling.request.RequestException
 import vn.com.extremevn.ebilling.request.RequestListener
-import timber.log.Timber
-import java.lang.Exception
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
 /**
  * This Billing Processor for managing and doing requests from app
  */
-open class BillingProcessor internal constructor(private val context: Context) {
+open class BillingProcessor internal constructor(context: Context) {
 
     private val purchasesUpdatedListener =
         PurchasesUpdatedListener { billingResult, purchases ->
@@ -157,24 +154,19 @@ open class BillingProcessor internal constructor(private val context: Context) {
 
     /**
      * Initiates the billing flow for an in-app purchase or subscription.
+     * @param activity: activity for launching purchase flow
      * @param billingFlowParams: Parameters to consume a purchase @see 	com.android.billingclient.api.BillingFlowParams.
      * @param skuType: The type of SKU, either "inapp" or "subs" as in @see com.android.billingclient.api.BillingClient.SkuType.
      * @param listener: The listener for the result of the query returned asynchronously through the succeed callback with the purchases @see com.android.billingclient.api.Purchase list or error callback with error code if failed
      */
     open fun launchBillingFlow(
+        activity: AppCompatActivity,
         billingFlowParams: BillingFlowParams,
         skuType: String,
         listener: RequestListener<List<Purchase>?>
     ) {
-        if (context !is AppCompatActivity) {
-            listener.onError(
-                EXCEPTION,
-                RequestException(Exception("launchBillingFlow not support for non activity"))
-            )
-            return
-        }
         val billingFlowRequest =
-            LaunchBillingFlowRequest(context, billingFlowParams, skuType, listener)
+            LaunchBillingFlowRequest(activity, billingFlowParams, skuType, listener)
         pendingRequests.add(
             OnBillingConnectedRunnableRequest(
                 billingClient,

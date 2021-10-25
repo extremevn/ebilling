@@ -23,14 +23,13 @@ class Billing {
     companion object {
         /**
          * Create billing instance live in activity lifecycle: start when activity created and stop when activity destroyed
-         * Only this billing instance for activity can make purchase
+         * Only billing instance for activity can make purchase
          */
-        fun createFor(activity: AppCompatActivity): BillingProcessor = BillingActivity(activity)
-
-        /**
-         * Create billing instance live in activity lifecycle: start when activity created and stop when activity destroyed
-         * This billing for context which is not activity can not make purchase but can do others
-         */
-        fun createFor(context: Context): BillingProcessor = BillingProcessor(context)
+        fun createFor(context: Context): BillingProcessor =
+            if (context is AppCompatActivity) {
+                BillingActivity(context)
+            } else {
+                BillingProcessor(context)
+            }
     }
 }
