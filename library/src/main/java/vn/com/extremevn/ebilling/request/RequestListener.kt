@@ -40,7 +40,7 @@ interface RequestListener<R> {
      * Called when the request has finished with an error (for example, exception was raised).
      *
      * @param response response code
-     * @param e        raised exception
+     * @param e raised exception
      */
     fun onError(response: Int, e: Exception)
 }

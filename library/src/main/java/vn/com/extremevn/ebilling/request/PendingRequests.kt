@@ -16,8 +16,9 @@
 
 package vn.com.extremevn.ebilling.request
 
-import vn.com.extremevn.ebilling.billing.ResponseCodes
 import timber.log.Timber
+import vn.com.extremevn.ebilling.billing.Billing
+import vn.com.extremevn.ebilling.billing.ResponseCodes
 
 /**
  * List of the requests to be executed when connection to the billing service is established.
@@ -32,7 +33,7 @@ internal class PendingRequests : Runnable {
      */
     internal fun add(runnableRequest: RunnableRequest) {
         synchronized(requests) {
-            Timber.d("Adding pending request: $runnableRequest")
+            Timber.tag(Billing.TAG).d("Adding pending request: $runnableRequest")
             requests.add(runnableRequest)
         }
     }
@@ -42,7 +43,7 @@ internal class PendingRequests : Runnable {
      */
     internal fun cancelAll() {
         synchronized(requests) {
-            Timber.d("Cancelling all pending requests")
+            Timber.tag(Billing.TAG).d("Cancelling all pending requests")
             val iterator: MutableIterator<RunnableRequest> = requests.iterator()
             while (iterator.hasNext()) {
                 val request: RunnableRequest = iterator.next()
@@ -62,7 +63,7 @@ internal class PendingRequests : Runnable {
             val runnableRequest: RunnableRequest? =
                 if (!requests.isEmpty()) requests.removeAt(0) else null
             if (runnableRequest != null) {
-                Timber.d("Removing pending request: $runnableRequest")
+                Timber.tag(Billing.TAG).d("Removing pending request: $runnableRequest")
             }
             return runnableRequest
         }
@@ -84,7 +85,7 @@ internal class PendingRequests : Runnable {
     override fun run() {
         var runnableRequest: RunnableRequest? = peek()
         while (runnableRequest != null) {
-            Timber.d("Running pending request: $runnableRequest")
+            Timber.tag(Billing.TAG).d("Running pending request: $runnableRequest")
             runnableRequest = if (runnableRequest.run()) {
                 remove(runnableRequest)
                 peek()
@@ -106,7 +107,7 @@ internal class PendingRequests : Runnable {
             val iterator: MutableIterator<RunnableRequest> = requests.iterator()
             while (iterator.hasNext()) {
                 if (iterator.next() === runnableRequest) {
-                    Timber.d("Removing pending request: $runnableRequest")
+                    Timber.tag(Billing.TAG).d("Removing pending request: $runnableRequest")
                     iterator.remove()
                     break
                 }

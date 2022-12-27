@@ -23,23 +23,25 @@ import com.android.billingclient.api.BillingClientStateListener
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.BillingResult
 import com.android.billingclient.api.ConsumeParams
+import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchaseHistoryRecord
 import com.android.billingclient.api.PurchasesUpdatedListener
-import com.android.billingclient.api.SkuDetails
-import com.android.billingclient.api.SkuDetailsParams
+import com.android.billingclient.api.QueryProductDetailsParams
+import com.android.billingclient.api.QueryPurchaseHistoryParams
+import com.android.billingclient.api.QueryPurchasesParams
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 import timber.log.Timber
 import vn.com.extremevn.ebilling.billing.request.ConsumePurchaseRequest
+import vn.com.extremevn.ebilling.billing.request.GeProductsRequest
 import vn.com.extremevn.ebilling.billing.request.GetPurchaseHistoryRequest
 import vn.com.extremevn.ebilling.billing.request.GetPurchasesRequest
-import vn.com.extremevn.ebilling.billing.request.GetSkusRequest
 import vn.com.extremevn.ebilling.billing.request.LaunchBillingFlowRequest
 import vn.com.extremevn.ebilling.request.OnBillingConnectedRunnableRequest
 import vn.com.extremevn.ebilling.request.PendingRequests
 import vn.com.extremevn.ebilling.request.Request
 import vn.com.extremevn.ebilling.request.RequestListener
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
 
 /**
  * This Billing Processor for managing and doing requests from app
@@ -97,7 +99,7 @@ open class BillingProcessor internal constructor(context: Context) {
 
     @Synchronized
     private fun connectBillingService() {
-        Timber.tag("SERVICE_CONNECTION").i("Connection state $connectionState")
+        Timber.tag("${Billing.TAG} CONNECTION").i("Connection state $connectionState")
         if (connectionState == BillingConnectionState.CONNECTED) {
             executePendingRequests()
             return
@@ -110,18 +112,18 @@ open class BillingProcessor internal constructor(context: Context) {
                 if (billingResult.responseCode == BillingClient.BillingResponseCode.OK) {
                     // The BillingClient is ready. You can query purchases here.
                     connectionState = BillingConnectionState.CONNECTED
-                    Timber.tag("SERVICE_CONNECTION").i("startConnection ok")
+                    Timber.tag("${Billing.TAG} CONNECTION").i("startConnection ok")
                     executePendingRequests()
                 } else {
                     pendingRequests.onConnectionFailed()
-                    Timber.tag("SERVICE_CONNECTION").i("startConnection fail")
+                    Timber.tag("${Billing.TAG} CONNECTION").i("startConnection fail")
                 }
             }
 
             override fun onBillingServiceDisconnected() {
                 // Try to restart the connection on the next request to
                 // Google Play by calling the startConnection() method.
-                Timber.tag("SERVICE_CONNECTION").i("startConnection onBillingServiceDisconnected")
+                Timber.tag("${Billing.TAG} CONNECTION").i("startConnection onBillingServiceDisconnected")
                 connectionState = BillingConnectionState.DISCONNECTED
                 pendingRequests.cancelAll()
             }
@@ -148,25 +150,31 @@ open class BillingProcessor internal constructor(context: Context) {
     }
 
     private fun executePendingRequests() {
-        Timber.tag("REQUEST").i("executePendingRequests: $pendingRequests")
+        Timber.tag(Billing.TAG).i("REQUEST: executePendingRequests: $pendingRequests")
         backgroundExecutor.execute(pendingRequests)
     }
 
     /**
+     * Get billing client instance for other processing such as: purchase updates, acknowledge purchase etc
+     **/
+    @Suppress("unused")
+    fun getBillingClient(): BillingClient = billingClient
+
+    /**
      * Initiates the billing flow for an in-app purchase or subscription.
-     * @param activity: activity for launching purchase flow
-     * @param billingFlowParams: Parameters to consume a purchase @see 	com.android.billingclient.api.BillingFlowParams.
-     * @param skuType: The type of SKU, either "inapp" or "subs" as in @see com.android.billingclient.api.BillingClient.SkuType.
-     * @param listener: The listener for the result of the query returned asynchronously through the succeed callback with the purchases @see com.android.billingclient.api.Purchase list or error callback with error code if failed
+     * @param activity activity for launching purchase flow
+     * @param billingFlowParams Parameters to consume a purchase @see 	com.android.billingclient.api.BillingFlowParams.
+     * @param productType The type of SKU, either "inapp" or "subs" as in @see com.android.billingclient.api.BillingClient.ProductType.
+     * @param listener The listener for the result of the query returned asynchronously through the succeed callback with the purchases @see com.android.billingclient.api.Purchase list or error callback with error code if failed
      */
     open fun launchBillingFlow(
         activity: AppCompatActivity,
         billingFlowParams: BillingFlowParams,
-        skuType: String,
+        productType: String,
         listener: RequestListener<List<Purchase>?>
     ) {
         val billingFlowRequest =
-            LaunchBillingFlowRequest(activity, billingFlowParams, skuType, listener)
+            LaunchBillingFlowRequest(activity, billingFlowParams, productType, listener)
         pendingRequests.add(
             OnBillingConnectedRunnableRequest(
                 billingClient,
@@ -182,18 +190,20 @@ open class BillingProcessor internal constructor(context: Context) {
 
     /**
      * Performs a network query to get SKU details and return the result asynchronously.
-     * @param skuDetailsParams: Parameters to consume a purchase @see 	com.android.billingclient.api.SkuDetailsParams.
-     * @param listener: The listener for the result of the query returned asynchronously through the succeed callback with the skeu detail @see com.android.billingclient.api.SkuDetails list or error callback with error code if failed
+     * @param queryProductDetailsParams Parameters to consume a purchase @see 	com.android.billingclient.api.QueryProductDetailsParams.
+     * @param productType The type of product which is being query
+     * @param listener The listener for the result of the query returned asynchronously through the succeed callback with the skeu detail @see com.android.billingclient.api.SkuDetails list or error callback with error code if failed
      */
-    fun getSkuDetails(
-        skuDetailsParams: SkuDetailsParams,
-        listener: RequestListener<List<SkuDetails>>
+    fun getProductDetails(
+        queryProductDetailsParams: QueryProductDetailsParams,
+        productType: String,
+        listener: RequestListener<List<ProductDetails>>
     ) {
-        val getSkusRequest = GetSkusRequest(skuDetailsParams, listener)
+        val geProductsRequest = GeProductsRequest(queryProductDetailsParams, listener, productType)
         pendingRequests.add(
             OnBillingConnectedRunnableRequest(
                 billingClient,
-                getSkusRequest,
+                geProductsRequest,
                 ::connectBillingService
             )
         )
@@ -204,14 +214,15 @@ open class BillingProcessor internal constructor(context: Context) {
      * Returns purchases details for currently owned items bought within app.
      * Only active subscriptions and non-consumed one-time purchases are returned.
      * This method uses a cache of Google Play Store app without initiating a network request.
-     * @param skuType: The type of SKU, either "inapp" or "subs" as in @see com.android.billingclient.api.BillingClient.SkuType.
-     * @param listener: The listener for the result of the query returned asynchronously through the succeed callback with the purchases @see com.android.billingclient.api.Purchase list or error callback with error code if failed
+     * @param productType The type of Product, either "inapp" or "subs" as in @see com.android.billingclient.api.BillingClient.ProductType.
+     * @param listener The listener for the result of the query returned asynchronously through the succeed callback with the purchases @see com.android.billingclient.api.Purchase list or error callback with error code if failed
      */
     fun getPurchases(
-        skuType: String,
+        productType: String,
         listener: RequestListener<List<Purchase>>
     ) {
-        val getPurchasesRequest = GetPurchasesRequest(skuType, listener)
+        val queryPurchasesParams = QueryPurchasesParams.newBuilder().setProductType(productType).build()
+        val getPurchasesRequest = GetPurchasesRequest(queryPurchasesParams, productType, listener)
         pendingRequests.add(
             OnBillingConnectedRunnableRequest(
                 billingClient,
@@ -224,14 +235,15 @@ open class BillingProcessor internal constructor(context: Context) {
 
     /**
      * Returns the most recent purchase made by the user for each SKU, even if that purchase is expired, canceled, or consumed
-     * @param skuType: The type of SKU, either "inapp" or "subs" as in @see com.android.billingclient.api.BillingClient.SkuType.
-     * @param listener: The listener for the result of the query returned asynchronously through the succeed callback with the purchases @see com.android.billingclient.api.PurchaseHistoryRecord list or error callback with error code if failed
+     * @param productType The type of Product, either "inapp" or "subs" as in @see com.android.billingclient.api.BillingClient.ProductType.
+     * @param listener The listener for the result of the query returned asynchronously through the succeed callback with the purchases @see com.android.billingclient.api.PurchaseHistoryRecord list or error callback with error code if failed
      */
     fun getPurchaseHistory(
-        skuType: String,
+        productType: String,
         listener: RequestListener<List<PurchaseHistoryRecord>?>
     ) {
-        val getPurchasesRequest = GetPurchaseHistoryRequest(skuType, listener)
+        val queryPurchaseHistoryParams = QueryPurchaseHistoryParams.newBuilder().setProductType(productType).build()
+        val getPurchasesRequest = GetPurchaseHistoryRequest(queryPurchaseHistoryParams, productType, listener)
         pendingRequests.add(
             OnBillingConnectedRunnableRequest(
                 billingClient,
@@ -244,16 +256,16 @@ open class BillingProcessor internal constructor(context: Context) {
 
     /**
      * Consumes a given in-app product. Consuming can only be done on an item that's owned, and as a result of consumption, the user will no longer own it.
-     * @param skuType: The type of SKU, either "inapp" or "subs" as in @see com.android.billingclient.api.BillingClient.SkuType.
-     * @param consumeParams: Parameters to consume a purchase @see 	com.android.billingclient.api.ConsumeParams.
-     * @param listener: The listener for the result of the query returned asynchronously through the succeed callback with the purchase token or error callback with error code if failed
+     * @param productType The type of Product, either "inapp" or "subs" as in @see com.android.billingclient.api.BillingClient.ProductType.
+     * @param consumeParams Parameters to consume a purchase @see 	com.android.billingclient.api.ConsumeParams.
+     * @param listener The listener for the result of the query returned asynchronously through the succeed callback with the purchase token or error callback with error code if failed
      */
     fun consumePurchase(
-        skuType: String,
+        productType: String,
         consumeParams: ConsumeParams,
         listener: RequestListener<String>
     ) {
-        val getPurchasesRequest = ConsumePurchaseRequest(consumeParams, skuType, listener)
+        val getPurchasesRequest = ConsumePurchaseRequest(consumeParams, productType, listener)
         pendingRequests.add(
             OnBillingConnectedRunnableRequest(
                 billingClient,

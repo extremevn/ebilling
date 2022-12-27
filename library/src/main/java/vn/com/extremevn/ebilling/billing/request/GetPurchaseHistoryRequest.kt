@@ -18,18 +18,24 @@ package vn.com.extremevn.ebilling.billing.request
 
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.PurchaseHistoryRecord
+import com.android.billingclient.api.QueryPurchaseHistoryParams
 import vn.com.extremevn.ebilling.request.Request
 import vn.com.extremevn.ebilling.request.RequestListener
 
 class GetPurchaseHistoryRequest(
-    skuType: String,
+    queryPurchaseHistoryParams: QueryPurchaseHistoryParams,
+    productType: String,
     requestListener: RequestListener<List<PurchaseHistoryRecord>?>
 ) :
-    Request<String, List<PurchaseHistoryRecord>?>(skuType, skuType, requestListener) {
+    Request<QueryPurchaseHistoryParams, List<PurchaseHistoryRecord>?>(
+        queryPurchaseHistoryParams,
+        productType,
+        requestListener
+    ) {
 
     override fun startWhenReady(client: BillingClient) {
         client.queryPurchaseHistoryAsync(
-            param as String
+            param as QueryPurchaseHistoryParams
         ) { billingResult, purchases ->
             when (billingResult.responseCode) {
                 BillingClient.BillingResponseCode.OK ->

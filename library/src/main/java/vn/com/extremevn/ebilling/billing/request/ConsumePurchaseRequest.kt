@@ -23,10 +23,10 @@ import vn.com.extremevn.ebilling.request.RequestListener
 
 class ConsumePurchaseRequest(
     consumeParams: ConsumeParams,
-    skuType: String,
+    productType: String,
     requestListener: RequestListener<String>
 ) :
-    Request<ConsumeParams, String>(consumeParams, skuType, requestListener) {
+    Request<ConsumeParams, String>(consumeParams, productType, requestListener) {
 
     override fun startWhenReady(client: BillingClient) {
         if (checkSubFeature(client).not())

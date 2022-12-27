@@ -17,9 +17,8 @@
 package vn.com.extremevn.ebilling.billing
 
 import androidx.appcompat.app.AppCompatActivity
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleObserver
-import androidx.lifecycle.OnLifecycleEvent
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import timber.log.Timber
 
 /**
@@ -27,20 +26,18 @@ import timber.log.Timber
  */
 class BillingActivity(activity: AppCompatActivity) :
     BillingProcessor(activity),
-    LifecycleObserver {
+    DefaultLifecycleObserver {
 
     init {
         Timber.plant(Timber.DebugTree())
         activity.lifecycle.addObserver(this)
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_CREATE)
-    private fun onCreate() {
+    override fun onCreate(owner: LifecycleOwner) {
         start()
     }
 
-    @OnLifecycleEvent(Lifecycle.Event.ON_DESTROY)
-    private fun onDestroy() {
+    override fun onDestroy(owner: LifecycleOwner) {
         stop()
     }
 }

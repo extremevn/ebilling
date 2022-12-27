@@ -28,10 +28,10 @@ import vn.com.extremevn.ebilling.request.RequestListener
 class LaunchBillingFlowRequest(
     private val activity: AppCompatActivity,
     billingFlowParams: BillingFlowParams,
-    skuType: String,
+    productType: String,
     requestListener: RequestListener<List<Purchase>?>
 ) :
-    Request<BillingFlowParams, List<Purchase>?>(billingFlowParams, skuType, requestListener) {
+    Request<BillingFlowParams, List<Purchase>?>(billingFlowParams, productType, requestListener) {
 
     private val mainThreadHandler = Handler(Looper.getMainLooper())
 

@@ -17,16 +17,17 @@
 package vn.com.extremevn.ebilling.request
 
 import com.android.billingclient.api.BillingClient
+import timber.log.Timber
+import vn.com.extremevn.ebilling.billing.Billing
 import vn.com.extremevn.ebilling.billing.BillingException
 import vn.com.extremevn.ebilling.billing.ResponseCodes
-import timber.log.Timber
 
 /**
  * Asynchronous operation which is done with connected billing service
  */
 abstract class Request<P : Any, R>(
     val param: Any? = null,
-    val skuType: String,
+    private val productType: String,
     var requestListener: RequestListener<R>?
 ) {
 
@@ -34,7 +35,7 @@ abstract class Request<P : Any, R>(
 
     // Start sending request by using [client] @see com.android.billingclient.api.BillingClient
     internal fun start(client: BillingClient) {
-        if (checkSubFeature(client).not()) {
+        if (checkSubFeature(client).not() || client.isReady.not()) {
             return
         }
         startWhenReady(client)
@@ -48,7 +49,7 @@ abstract class Request<P : Any, R>(
      */
     open fun cancel() {
         synchronized(this) {
-            Timber.tag("REQUEST").i("cancel request $this")
+            Timber.tag(Billing.TAG).i("REQUEST: cancel request $this")
             requestListener = null
         }
     }
@@ -62,10 +63,10 @@ abstract class Request<P : Any, R>(
         }
 
     internal fun onSuccess(result: R) {
-        Timber.tag("REQUEST").i("request succeed")
+        Timber.tag(Billing.TAG).i("REQUEST: request succeed")
         if (requestListener != null) {
             if (checkListenerCalled()) return
-            Timber.tag("REQUEST").i("request succeed raise listener")
+            Timber.tag(Billing.TAG).i("REQUEST: request succeed raise listener")
             requestListener!!.onSuccess(result)
         }
     }
@@ -82,12 +83,12 @@ abstract class Request<P : Any, R>(
 
     internal fun onError(response: Int) {
         val message = ResponseCodes.toString(response)
-        Timber.tag("REQUEST").e("request error response: $message in $this request")
+        Timber.tag(Billing.TAG).e("REQUEST request error response: $message in $this request")
         onError(response, BillingException(response))
     }
 
     internal fun onError(e: Exception) {
-        Timber.tag("REQUEST").e(e, "request exception in $this request: ")
+        Timber.tag("${Billing.TAG} REQUEST").e(e, "request exception in $this request: ")
         onError(ResponseCodes.EXCEPTION, e)
     }
 
@@ -107,8 +108,8 @@ abstract class Request<P : Any, R>(
     }
 
     protected fun checkSubFeature(service: BillingClient): Boolean {
-        if (skuType == BillingClient.SkuType.SUBS) {
-            val billingResult = service.isFeatureSupported(BillingClient.SkuType.SUBS)
+        if (productType == BillingClient.ProductType.SUBS) {
+            val billingResult = service.isFeatureSupported(BillingClient.ProductType.SUBS)
             if (billingResult.responseCode == BillingClient.BillingResponseCode.FEATURE_NOT_SUPPORTED) {
                 handleError(billingResult.responseCode)
                 return false
