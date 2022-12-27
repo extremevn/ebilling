@@ -18,6 +18,7 @@ package vn.com.extremevn.ebilling.request
 
 import com.android.billingclient.api.BillingClient
 import timber.log.Timber
+import vn.com.extremevn.ebilling.billing.Billing
 
 internal class OnBillingConnectedRunnableRequest(
     private val billingClient: BillingClient,
@@ -27,7 +28,7 @@ internal class OnBillingConnectedRunnableRequest(
     @Synchronized
     override fun cancel() {
         if (request != null) {
-            Timber.i("Cancelling request: $request")
+            Timber.tag(Billing.TAG).i("REQUEST: Cancelling request: $request")
             request!!.cancel()
         }
         request = null
@@ -35,21 +36,21 @@ internal class OnBillingConnectedRunnableRequest(
 
     override fun run(): Boolean {
         if (request == null || request!!.isCancelled) {
-            Timber.tag("REQUEST").i("request $request is Cancelled, stop run")
+            Timber.tag(Billing.TAG).i("REQUEST: request $request is Cancelled, stop run")
             return true
         }
         if (billingClient.isReady.not()) {
-            Timber.tag("REQUEST")
-                .i("Billing client is not ready, try to connect and run again later")
+            Timber.tag(Billing.TAG)
+                .i("REQUEST: Billing client is not ready, try to connect and run again later")
             onRetry.invoke()
             return false
         }
         try {
-            Timber.tag("REQUEST").i("request $request start")
+            Timber.tag(Billing.TAG).i("REQUEST: request $request start")
             request!!.start(billingClient)
         } catch (e: Exception) {
             request!!.onError(RequestException(e))
-            Timber.tag("REQUEST").e(e, "exception occured when execute request $request")
+            Timber.tag(Billing.TAG).e(e, "REQUEST: exception occured when execute request $request")
         }
         return true
     }

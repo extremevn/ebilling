@@ -17,26 +17,27 @@
 package vn.com.extremevn.ebilling.billing.request
 
 import com.android.billingclient.api.BillingClient
-import com.android.billingclient.api.SkuDetails
-import com.android.billingclient.api.SkuDetailsParams
+import com.android.billingclient.api.ProductDetails
+import com.android.billingclient.api.QueryProductDetailsParams
 import vn.com.extremevn.ebilling.request.Request
 import vn.com.extremevn.ebilling.request.RequestListener
 
-class GetSkusRequest(
-    skuDetailsParams: SkuDetailsParams,
-    requestListener: RequestListener<List<SkuDetails>>
+class GeProductsRequest(
+    queryProductDetailsParams: QueryProductDetailsParams,
+    requestListener: RequestListener<List<ProductDetails>>,
+    productType: String
 ) :
-    Request<SkuDetailsParams, List<SkuDetails>>(skuDetailsParams, skuDetailsParams.skuType, requestListener) {
+    Request<QueryProductDetailsParams, List<ProductDetails>>(queryProductDetailsParams, productType, requestListener) {
 
     override fun startWhenReady(client: BillingClient) {
         if (checkSubFeature(client).not())
             return
-        client.querySkuDetailsAsync(
-            param as SkuDetailsParams
-        ) { billingResult, skuDetails ->
+        client.queryProductDetailsAsync(
+            param as QueryProductDetailsParams
+        ) { billingResult, productDetails ->
             when (billingResult.responseCode) {
                 BillingClient.BillingResponseCode.OK ->
-                    onSuccess(skuDetails ?: mutableListOf())
+                    onSuccess(productDetails)
                 else -> handleError(billingResult.responseCode)
             }
         }

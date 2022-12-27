@@ -6,10 +6,10 @@ import androidx.appcompat.app.AppCompatActivity
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.BillingFlowParams
 import com.android.billingclient.api.ConsumeParams
+import com.android.billingclient.api.ProductDetails
 import com.android.billingclient.api.Purchase
 import com.android.billingclient.api.PurchaseHistoryRecord
-import com.android.billingclient.api.SkuDetails
-import com.android.billingclient.api.SkuDetailsParams
+import com.android.billingclient.api.QueryProductDetailsParams
 import timber.log.Timber
 import vn.com.extremevn.ebilling.billing.Billing
 import vn.com.extremevn.ebilling.billing.BillingProcessor
@@ -31,16 +31,21 @@ class MainActivity : AppCompatActivity() {
     private fun setUpGetSkuDetail() {
         findViewById<Button>(R.id.bt_sku_details).setOnClickListener {
             val params =
-                SkuDetailsParams.newBuilder()
-                    .setType(BillingClient.SkuType.INAPP)
-                    .setSkusList(
-                        listOf("your.product.id")
-                    ).build()
+                QueryProductDetailsParams.newBuilder()
+                    .setProductList(
+                        mutableListOf(
+                            QueryProductDetailsParams.Product.newBuilder()
+                                .setProductId("your.product.id")
+                                .setProductType(BillingClient.ProductType.INAPP).build()
+                        )
+                    )
+                    .build()
             for (i in 0..100) {
-                billingProcessor.getSkuDetails(
+                billingProcessor.getProductDetails(
                     params,
-                    object : RequestListener<List<SkuDetails>> {
-                        override fun onSuccess(result: List<SkuDetails>) {
+                    BillingClient.ProductType.INAPP,
+                    object : RequestListener<List<ProductDetails>> {
+                        override fun onSuccess(result: List<ProductDetails>) {
                             Timber.tag("GET_SKU").i("$result")
                         }
 
@@ -56,20 +61,30 @@ class MainActivity : AppCompatActivity() {
     private fun setUpPurchase() {
         findViewById<Button>(R.id.bt_purchase).setOnClickListener {
             val params =
-                SkuDetailsParams.newBuilder()
-                    .setType(BillingClient.SkuType.INAPP)
-                    .setSkusList(
-                        listOf("your.product.id")
+                QueryProductDetailsParams.newBuilder()
+                    .setProductList(
+                        mutableListOf(
+                            QueryProductDetailsParams.Product.newBuilder()
+                                .setProductId("your.product.id")
+                                .setProductType(BillingClient.ProductType.INAPP).build()
+                        )
                     ).build()
-            billingProcessor.getSkuDetails(
+            billingProcessor.getProductDetails(
                 params,
-                object : RequestListener<List<SkuDetails>> {
-                    override fun onSuccess(result: List<SkuDetails>) {
+                BillingClient.ProductType.INAPP,
+                object : RequestListener<List<ProductDetails>> {
+                    override fun onSuccess(result: List<ProductDetails>) {
                         Timber.tag("PURCHASE").i("$result")
                         result.firstOrNull()?.run {
-                            billingProcessor.launchBillingFlow(
-                                BillingFlowParams.newBuilder().setSkuDetails(this).build(),
-                                type,
+                            billingProcessor.launchBillingFlow(this@MainActivity,
+                                BillingFlowParams.newBuilder().setProductDetailsParamsList(
+                                    listOf(
+                                        BillingFlowParams.ProductDetailsParams.newBuilder()
+                                            .setProductDetails(this)
+                                            .build()
+                                    )
+                                ).build(),
+                                BillingClient.ProductType.INAPP,
                                 object : RequestListener<List<Purchase>?> {
                                     override fun onSuccess(result: List<Purchase>?) {
                                         Timber.tag("PURCHASE").i("Result: $result")
@@ -95,7 +110,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.bt_get_purchase).setOnClickListener {
             for (i in 0..100) {
                 billingProcessor.getPurchases(
-                    BillingClient.SkuType.INAPP,
+                    BillingClient.ProductType.INAPP,
                     object : RequestListener<List<Purchase>> {
                         override fun onSuccess(result: List<Purchase>) {
                             Timber.tag("GET_PURCHASE").i("$result")
@@ -114,7 +129,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.bt_get_purchase_history).setOnClickListener {
             for (i in 0..100) {
                 billingProcessor.getPurchaseHistory(
-                    BillingClient.SkuType.INAPP,
+                    BillingClient.ProductType.INAPP,
                     object : RequestListener<List<PurchaseHistoryRecord>?> {
                         override fun onSuccess(result: List<PurchaseHistoryRecord>?) {
                             Timber.tag("GET_PURCHASE_HISTORY").i("$result")
@@ -132,13 +147,13 @@ class MainActivity : AppCompatActivity() {
     private fun setUpConsumePurchase() {
         findViewById<Button>(R.id.bt_consume_purchase).setOnClickListener {
             billingProcessor.getPurchases(
-                BillingClient.SkuType.INAPP,
+                BillingClient.ProductType.INAPP,
                 object : RequestListener<List<Purchase>> {
                     override fun onSuccess(result: List<Purchase>) {
                         Timber.tag("GET_PURCHASE").i("$result")
                         result.firstOrNull()?.run {
                             billingProcessor.consumePurchase(
-                                BillingClient.SkuType.INAPP,
+                                BillingClient.ProductType.INAPP,
                                 ConsumeParams.newBuilder().setPurchaseToken(purchaseToken).build(),
                                 object : RequestListener<String> {
                                     override fun onSuccess(result: String) {

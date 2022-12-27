@@ -19,7 +19,7 @@ Root build.gradle
 App build.gradle
 ```gradle
     dependencies {
-        implementation 'vn.com.extremevn:ebilling:1.0.0'
+        implementation 'vn.com.extremevn:ebilling:1.1.0'
         ...
     }
 ```

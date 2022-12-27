@@ -25,6 +25,7 @@ class Billing {
          * Create billing instance live in activity lifecycle: start when activity created and stop when activity destroyed
          * Only billing instance for activity can make purchase
          */
+        const val TAG = "Billing"
         fun createFor(context: Context): BillingProcessor =
             if (context is AppCompatActivity) {
                 BillingActivity(context)

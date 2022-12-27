@@ -18,18 +18,20 @@ package vn.com.extremevn.ebilling.billing.request
 
 import com.android.billingclient.api.BillingClient
 import com.android.billingclient.api.Purchase
+import com.android.billingclient.api.QueryPurchasesParams
 import vn.com.extremevn.ebilling.request.Request
 import vn.com.extremevn.ebilling.request.RequestListener
 
 class GetPurchasesRequest(
-    skuType: String,
+    queryPurchasesParams: QueryPurchasesParams,
+    productType: String,
     requestListener: RequestListener<List<Purchase>>
 ) :
-    Request<String, List<Purchase>>(skuType, skuType, requestListener) {
+    Request<String, List<Purchase>>(queryPurchasesParams, productType, requestListener) {
 
     override fun startWhenReady(client: BillingClient) {
         client.queryPurchasesAsync(
-            param as String
+            param as QueryPurchasesParams
         ) { billingResult, purchases ->
             when (billingResult.responseCode) {
                 BillingClient.BillingResponseCode.OK ->
